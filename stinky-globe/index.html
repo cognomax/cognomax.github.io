@@ -10,9 +10,8 @@
       --ocean: #66d9ff;    /* hover button blue */
       --ink: #0a0a0a;
     }
-    html, body { height: 100%; }
+    html, body { height: 100%; margin: 0; }
     body{
-      margin: 0;
       background: var(--tan);
       overflow: hidden;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -23,7 +22,7 @@
       display: grid;
       place-items: center;
     }
-    canvas#three { display: block; }
+    canvas { display: block; }
     .hint{
       position: fixed;
       left: 18px;
@@ -55,165 +54,154 @@
   <div class="hint">drag to rotate • scroll to zoom</div>
   <a class="back" href="../">← back</a>
 
-  <!-- Three.js -->
-  <script src="https://unpkg.com/three@0.159.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.159.0/examples/js/controls/OrbitControls.js"></script>
-
-  <!-- D3 + TopoJSON (to draw countries onto a canvas texture) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 
   <script>
-    // Wait for all scripts to load with retry logic
-    let started = false;
+    const TAN = '#f1e6b6';
+    const OCEAN = '#66d9ff';
+    const INK = '#0a0a0a';
 
-    function initGlobe() {
-      if (started) return;
-
-      const ready =
-        typeof THREE !== 'undefined' &&
-        typeof THREE.OrbitControls !== 'undefined' &&
-        typeof d3 !== 'undefined' &&
-        typeof topojson !== 'undefined';
-
-      if (!ready) {
-        requestAnimationFrame(initGlobe); // keep trying
-        return;
-      }
-
-      started = true;
-
-    const TAN = getComputedStyle(document.documentElement).getPropertyValue('--tan').trim();
-    const OCEAN = getComputedStyle(document.documentElement).getPropertyValue('--ocean').trim();
-    const INK = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
-
-    // ---------- helpers ----------
-    function pastelColorFromId(id){
-      // stable "random" pastel per country
-      let x = (id * 2654435761) >>> 0; // hash-ish
-      const hue = x % 360;
-      // pastel HSL: high lightness, moderate saturation for soft colors
+    // Pastel color generator
+    function pastelColor(id) {
+      const hash = (id * 2654435761) >>> 0;
+      const hue = hash % 360;
       return `hsl(${hue}, 45%, 82%)`;
     }
 
-    async function buildEarthTextureCanvas() {
-      // High-res texture canvas (equirectangular) - HD for sharp borders when zoomed
-      const W = 6144, H = 3072;
-      const c = document.createElement('canvas');
-      c.width = W; c.height = H;
-      const ctx = c.getContext('2d');
+    // Build texture canvas
+    async function createTexture() {
+      const W = 4096, H = 2048;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
 
       // Ocean background
       ctx.fillStyle = OCEAN;
       ctx.fillRect(0, 0, W, H);
 
-      // Projection: equirectangular fits perfectly on sphere
+      // Projection
       const projection = d3.geoEquirectangular()
         .translate([W / 2, H / 2])
         .scale(W / (2 * Math.PI));
       const path = d3.geoPath(projection, ctx);
 
-      // Fetch world topology (countries)
-      const topo = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(r => r.json());
+      // Load countries
+      const topo = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(r => r.json());
       const countries = topojson.feature(topo, topo.objects.countries).features;
 
-      // Draw filled countries
-      for (const f of countries) {
+      // Draw countries with pastel colors
+      countries.forEach(f => {
         ctx.beginPath();
         path(f);
-        ctx.fillStyle = pastelColorFromId(+f.id || 1);
+        ctx.fillStyle = pastelColor(+f.id || 1);
         ctx.fill();
-      }
+      });
 
-      // Draw borders (thin black) - scale line width with resolution
-      ctx.lineWidth = 1.5;               // thin, scales with HD resolution
+      // Draw borders
       ctx.strokeStyle = INK;
-
-      for (const f of countries) {
+      ctx.lineWidth = 1.5;
+      countries.forEach(f => {
         ctx.beginPath();
         path(f);
         ctx.stroke();
-      }
+      });
 
-      return c;
+      return canvas;
     }
 
-    // ---------- Three.js scene ----------
-    const wrap = document.getElementById('wrap');
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    renderer.setClearColor(new THREE.Color(TAN), 1);
+    // Setup Three.js
+    const container = document.getElementById('wrap');
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setClearColor(TAN);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.domElement.id = "three";
-    wrap.appendChild(renderer.domElement);
+    container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-
     const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(0, 0, 3.2);
+    camera.position.z = 3.2;
 
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
-    controls.enablePan = false;
-    controls.minDistance = 2.2;
-    controls.maxDistance = 6.0;
-
-    // Globe group (no lighting - using MeshBasicMaterial for flat, modern pastel look)
-    const globeGroup = new THREE.Group();
+    // Create globe
+    let globeGroup = new THREE.Group();
     scene.add(globeGroup);
 
-    let globeMesh = null;
-
-    (async () => {
-      const texCanvas = await buildEarthTextureCanvas();
-      const texture = new THREE.CanvasTexture(texCanvas);
+    // Initialize
+    createTexture().then(canvas => {
+      const texture = new THREE.CanvasTexture(canvas);
       texture.colorSpace = THREE.SRGBColorSpace;
-      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-      const geo = new THREE.SphereGeometry(1, 128, 128);
-      const mat = new THREE.MeshBasicMaterial({
-        map: texture
-      });
-      globeMesh = new THREE.Mesh(geo, mat);
-      globeGroup.add(globeMesh);
+      const geometry = new THREE.SphereGeometry(1, 128, 128);
+      const material = new THREE.MeshBasicMaterial({ map: texture });
+      const globe = new THREE.Mesh(geometry, material);
+      globeGroup.add(globe);
 
-      // Thin black outline around the whole globe:
-      // Create a slightly larger sphere rendered from the backside.
+      // Thin black outline
+      const outlineGeo = new THREE.SphereGeometry(1, 128, 128);
       const outlineMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(INK),
+        color: INK,
         side: THREE.BackSide
       });
-      const outline = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 128), outlineMat);
-      outline.scale.set(1.005, 1.005, 1.005); // very thin outline
+      const outline = new THREE.Mesh(outlineGeo, outlineMat);
+      outline.scale.set(1.005, 1.005, 1.005);
       globeGroup.add(outline);
-    })();
 
-    // Slow horizontal spin (pause-ish when user drags)
-    let userInteracting = false;
-    controls.addEventListener('start', () => userInteracting = true);
-    controls.addEventListener('end', () => userInteracting = false);
+      // Simple orbit controls
+      let isDragging = false;
+      let lastX = 0, lastY = 0;
+      let rotateX = 0, rotateY = 0;
 
-    function animate(){
-      requestAnimationFrame(animate);
-      controls.update();
+      renderer.domElement.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      });
 
-      if (globeMesh && !userInteracting) {
-        globeGroup.rotation.y -= 0.0006; // slow horizontal spin (right to left)
+      renderer.domElement.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+          const deltaX = e.clientX - lastX;
+          const deltaY = e.clientY - lastY;
+          rotateY += deltaX * 0.01;
+          rotateX += deltaY * 0.01;
+          lastX = e.clientX;
+          lastY = e.clientY;
+        }
+      });
+
+      renderer.domElement.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+
+      renderer.domElement.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        camera.position.z += e.deltaY * 0.01;
+        camera.position.z = Math.max(2.2, Math.min(6.0, camera.position.z));
+      });
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        
+        if (!isDragging) {
+          globeGroup.rotation.y -= 0.0006; // slow horizontal spin (right to left)
+        } else {
+          globeGroup.rotation.y = rotateY;
+          globeGroup.rotation.x = rotateX;
+        }
+
+        renderer.render(scene, camera);
       }
-      renderer.render(scene, camera);
-    }
-    animate();
+      animate();
+    });
 
+    // Resize handler
     window.addEventListener('resize', () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
     });
-    }
-    
-    // Start initialization - will retry until all scripts are loaded
-    initGlobe();
   </script>
 </body>
 </html>
