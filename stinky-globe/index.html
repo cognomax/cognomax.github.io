@@ -56,22 +56,14 @@
   <a class="back" href="../">← back</a>
 
   <!-- Three.js -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/"
-      }
-    }
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/controls/OrbitControls.js"></script>
 
   <!-- D3 + TopoJSON (to draw countries onto a canvas texture) -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  <script>
 
     const TAN = getComputedStyle(document.documentElement).getPropertyValue('--tan').trim();
     const OCEAN = getComputedStyle(document.documentElement).getPropertyValue('--ocean').trim();
@@ -142,7 +134,7 @@
     const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
     camera.position.set(0, 0, 3.2);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.enablePan = false;
