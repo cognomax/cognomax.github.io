@@ -64,11 +64,24 @@
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 
   <script>
-    // Wait for all scripts to load
+    // Wait for all scripts to load with retry logic
+    let started = false;
+
     function initGlobe() {
-      if (typeof THREE === 'undefined' || typeof THREE.OrbitControls === 'undefined' || typeof d3 === 'undefined' || typeof topojson === 'undefined') {
-        return; // Scripts not ready yet
+      if (started) return;
+
+      const ready =
+        typeof THREE !== 'undefined' &&
+        typeof THREE.OrbitControls !== 'undefined' &&
+        typeof d3 !== 'undefined' &&
+        typeof topojson !== 'undefined';
+
+      if (!ready) {
+        requestAnimationFrame(initGlobe); // keep trying
+        return;
       }
+
+      started = true;
 
     const TAN = getComputedStyle(document.documentElement).getPropertyValue('--tan').trim();
     const OCEAN = getComputedStyle(document.documentElement).getPropertyValue('--ocean').trim();
@@ -199,14 +212,8 @@
     });
     }
     
-    // Try to initialize immediately, or wait for load
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initGlobe);
-    } else {
-      // If DOM is already loaded, wait a bit for scripts
-      setTimeout(initGlobe, 100);
-    }
-    window.addEventListener('load', initGlobe);
+    // Start initialization - will retry until all scripts are loaded
+    initGlobe();
   </script>
 </body>
 </html>
