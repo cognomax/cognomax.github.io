@@ -56,14 +56,19 @@
   <a class="back" href="../">← back</a>
 
   <!-- Three.js -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/three@0.159.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.159.0/examples/js/controls/OrbitControls.js"></script>
 
   <!-- D3 + TopoJSON (to draw countries onto a canvas texture) -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 
   <script>
+    // Wait for all scripts to load
+    function initGlobe() {
+      if (typeof THREE === 'undefined' || typeof THREE.OrbitControls === 'undefined' || typeof d3 === 'undefined' || typeof topojson === 'undefined') {
+        return; // Scripts not ready yet
+      }
 
     const TAN = getComputedStyle(document.documentElement).getPropertyValue('--tan').trim();
     const OCEAN = getComputedStyle(document.documentElement).getPropertyValue('--ocean').trim();
@@ -192,6 +197,16 @@
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
     });
+    }
+    
+    // Try to initialize immediately, or wait for load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initGlobe);
+    } else {
+      // If DOM is already loaded, wait a bit for scripts
+      setTimeout(initGlobe, 100);
+    }
+    window.addEventListener('load', initGlobe);
   </script>
 </body>
 </html>
