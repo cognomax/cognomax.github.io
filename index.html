@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hub</title>
+  <style>
+    :root{
+      --bg: #f1e6b6;          /* warm beige */
+      --ink: #0a0a0a;         /* near-black */
+    }
+
+    * { box-sizing: border-box; }
+
+    body{
+      margin: 0;
+      height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      overflow: hidden; /* so the title can crop offscreen */
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    /* Giant cropped title (top-left, intentionally cut off) */
+    .title{
+      position: absolute;
+      top: -38px;     /* push upward so it clips */
+      left: 22px;
+      font-size: clamp(72px, 12vw, 160px);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      margin: 0;
+      line-height: 0.9;
+    }
+
+    /* Center area */
+    .center{
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translateY(-10px); /* slightly above dead-center like your screenshot */
+    }
+
+    /* Sketchy pill button */
+    .pill{
+      position: relative;
+      display: inline-block;
+      padding: 18px 44px;
+      border-radius: 999px;
+      text-decoration: none;
+      color: var(--ink);
+      background: transparent;
+      font-weight: 800;
+      font-size: clamp(28px, 4vw, 44px);
+      letter-spacing: -0.02em;
+      line-height: 1;
+      user-select: none;
+    }
+
+    /* Two imperfect outlines to mimic hand-drawn border */
+    .pill::before,
+    .pill::after{
+      content: "";
+      position: absolute;
+      inset: -6px -10px;      /* make outline slightly bigger than button */
+      border-radius: 999px;
+      border: 3px solid var(--ink);
+      pointer-events: none;
+    }
+
+    .pill::before{
+      transform: rotate(-1.2deg) translate(-1px, 1px);
+      opacity: 0.95;
+    }
+
+    .pill::after{
+      inset: -4px -8px;
+      transform: rotate(0.9deg) translate(2px, -1px);
+      border-width: 2px;
+      opacity: 0.9;
+    }
+
+    /* Optional subtle “sketch” jitter on hover */
+    .pill:hover{
+      transform: translateY(-1px);
+    }
+    .pill:hover::before{
+      transform: rotate(-1.6deg) translate(-1px, 2px);
+    }
+    .pill:hover::after{
+      transform: rotate(1.2deg) translate(2px, -2px);
+    }
+
+    /* Make focus visible (keyboard) */
+    .pill:focus-visible{
+      outline: 3px solid var(--ink);
+      outline-offset: 6px;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1 class="title">synesthetic</h1>
+
+  <main class="center">
+    <!-- Link to your app folder -->
+    <a class="pill" href="./globe-news/">stinky globe</a>
+  </main>
+</body>
+</html>
