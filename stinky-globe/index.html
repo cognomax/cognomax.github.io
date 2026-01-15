@@ -56,14 +56,23 @@
   <a class="back" href="../">← back</a>
 
   <!-- Three.js -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/controls/OrbitControls.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/"
+      }
+    }
+  </script>
 
   <!-- D3 + TopoJSON (to draw countries onto a canvas texture) -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 
-  <script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
     const TAN = getComputedStyle(document.documentElement).getPropertyValue('--tan').trim();
     const OCEAN = getComputedStyle(document.documentElement).getPropertyValue('--ocean').trim();
     const INK = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
@@ -73,13 +82,13 @@
       // stable "random" pastel per country
       let x = (id * 2654435761) >>> 0; // hash-ish
       const hue = x % 360;
-      // pastel HSL: high lightness, low-mid saturation
-      return `hsl(${hue}, 55%, 78%)`;
+      // pastel HSL: high lightness, moderate saturation for soft colors
+      return `hsl(${hue}, 45%, 82%)`;
     }
 
     async function buildEarthTextureCanvas() {
-      // High-res texture canvas (equirectangular)
-      const W = 2048, H = 1024;
+      // High-res texture canvas (equirectangular) - HD for sharp borders when zoomed
+      const W = 6144, H = 3072;
       const c = document.createElement('canvas');
       c.width = W; c.height = H;
       const ctx = c.getContext('2d');
@@ -106,10 +115,9 @@
         ctx.fill();
       }
 
-      // Draw borders (thin black)
-      ctx.lineWidth = 0.7;               // thin
+      // Draw borders (thin black) - scale line width with resolution
+      ctx.lineWidth = 1.5;               // thin, scales with HD resolution
       ctx.strokeStyle = INK;
-      ctx.globalAlpha = 1.0;
 
       for (const f of countries) {
         ctx.beginPath();
@@ -134,20 +142,14 @@
     const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
     camera.position.set(0, 0, 3.2);
 
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.enablePan = false;
     controls.minDistance = 2.2;
     controls.maxDistance = 6.0;
 
-    // Soft lighting (keeps colors clean)
-    scene.add(new THREE.AmbientLight(0xffffff, 0.95));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.35);
-    dir.position.set(2, 1, 3);
-    scene.add(dir);
-
-    // Globe group
+    // Globe group (no lighting - using MeshBasicMaterial for flat, modern pastel look)
     const globeGroup = new THREE.Group();
     scene.add(globeGroup);
 
@@ -160,10 +162,8 @@
       texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
       const geo = new THREE.SphereGeometry(1, 128, 128);
-      const mat = new THREE.MeshStandardMaterial({
-        map: texture,
-        roughness: 0.95,
-        metalness: 0.0
+      const mat = new THREE.MeshBasicMaterial({
+        map: texture
       });
       globeMesh = new THREE.Mesh(geo, mat);
       globeGroup.add(globeMesh);
@@ -175,7 +175,7 @@
         side: THREE.BackSide
       });
       const outline = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 128), outlineMat);
-      outline.scale.set(1.01, 1.01, 1.01); // thickness of outline
+      outline.scale.set(1.005, 1.005, 1.005); // very thin outline
       globeGroup.add(outline);
     })();
 
@@ -189,7 +189,7 @@
       controls.update();
 
       if (globeMesh && !userInteracting) {
-        globeGroup.rotation.y += 0.0012; // speed
+        globeGroup.rotation.y -= 0.0006; // slow horizontal spin (right to left)
       }
       renderer.render(scene, camera);
     }
