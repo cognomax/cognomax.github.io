@@ -1,13 +1,205 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stinky Globe</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>stinky globe</title>
+  <style>
+    :root{
+      --tan: #f1e6b6;      /* hub background */
+      --ocean: #66d9ff;    /* hover button blue */
+      --ink: #0a0a0a;
+    }
+    html, body { height: 100%; }
+    body{
+      margin: 0;
+      background: var(--tan);
+      overflow: hidden;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    #wrap{
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+    }
+    canvas#three { display: block; }
+    .hint{
+      position: fixed;
+      left: 18px;
+      bottom: 14px;
+      color: var(--ink);
+      opacity: 0.7;
+      font-size: 13px;
+      user-select: none;
+    }
+    .back{
+      position: fixed;
+      right: 18px;
+      bottom: 14px;
+      color: var(--ink);
+      opacity: 0.75;
+      text-decoration: none;
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(10,10,10,0.25);
+      background: rgba(241,230,182,0.65);
+      backdrop-filter: blur(6px);
+    }
+    .back:hover{ opacity: 1; }
+  </style>
 </head>
-<body style="font-family:system-ui; padding:24px;">
-  <h1>stinky globe</h1>
-  <p>it lives ✅</p>
-  <p><a href="../">← back to synesthetic</a></p>
+<body>
+  <div id="wrap"></div>
+  <div class="hint">drag to rotate • scroll to zoom</div>
+  <a class="back" href="../">← back</a>
+
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- D3 + TopoJSON (to draw countries onto a canvas texture) -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+
+  <script>
+    const TAN = getComputedStyle(document.documentElement).getPropertyValue('--tan').trim();
+    const OCEAN = getComputedStyle(document.documentElement).getPropertyValue('--ocean').trim();
+    const INK = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+
+    // ---------- helpers ----------
+    function pastelColorFromId(id){
+      // stable "random" pastel per country
+      let x = (id * 2654435761) >>> 0; // hash-ish
+      const hue = x % 360;
+      // pastel HSL: high lightness, low-mid saturation
+      return `hsl(${hue}, 55%, 78%)`;
+    }
+
+    async function buildEarthTextureCanvas() {
+      // High-res texture canvas (equirectangular)
+      const W = 2048, H = 1024;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const ctx = c.getContext('2d');
+
+      // Ocean background
+      ctx.fillStyle = OCEAN;
+      ctx.fillRect(0, 0, W, H);
+
+      // Projection: equirectangular fits perfectly on sphere
+      const projection = d3.geoEquirectangular()
+        .translate([W / 2, H / 2])
+        .scale(W / (2 * Math.PI));
+      const path = d3.geoPath(projection, ctx);
+
+      // Fetch world topology (countries)
+      const topo = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(r => r.json());
+      const countries = topojson.feature(topo, topo.objects.countries).features;
+
+      // Draw filled countries
+      for (const f of countries) {
+        ctx.beginPath();
+        path(f);
+        ctx.fillStyle = pastelColorFromId(+f.id || 1);
+        ctx.fill();
+      }
+
+      // Draw borders (thin black)
+      ctx.lineWidth = 0.7;               // thin
+      ctx.strokeStyle = INK;
+      ctx.globalAlpha = 1.0;
+
+      for (const f of countries) {
+        ctx.beginPath();
+        path(f);
+        ctx.stroke();
+      }
+
+      return c;
+    }
+
+    // ---------- Three.js scene ----------
+    const wrap = document.getElementById('wrap');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setClearColor(new THREE.Color(TAN), 1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.id = "three";
+    wrap.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 3.2);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.enablePan = false;
+    controls.minDistance = 2.2;
+    controls.maxDistance = 6.0;
+
+    // Soft lighting (keeps colors clean)
+    scene.add(new THREE.AmbientLight(0xffffff, 0.95));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.35);
+    dir.position.set(2, 1, 3);
+    scene.add(dir);
+
+    // Globe group
+    const globeGroup = new THREE.Group();
+    scene.add(globeGroup);
+
+    let globeMesh = null;
+
+    (async () => {
+      const texCanvas = await buildEarthTextureCanvas();
+      const texture = new THREE.CanvasTexture(texCanvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+      const geo = new THREE.SphereGeometry(1, 128, 128);
+      const mat = new THREE.MeshStandardMaterial({
+        map: texture,
+        roughness: 0.95,
+        metalness: 0.0
+      });
+      globeMesh = new THREE.Mesh(geo, mat);
+      globeGroup.add(globeMesh);
+
+      // Thin black outline around the whole globe:
+      // Create a slightly larger sphere rendered from the backside.
+      const outlineMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(INK),
+        side: THREE.BackSide
+      });
+      const outline = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 128), outlineMat);
+      outline.scale.set(1.01, 1.01, 1.01); // thickness of outline
+      globeGroup.add(outline);
+    })();
+
+    // Slow horizontal spin (pause-ish when user drags)
+    let userInteracting = false;
+    controls.addEventListener('start', () => userInteracting = true);
+    controls.addEventListener('end', () => userInteracting = false);
+
+    function animate(){
+      requestAnimationFrame(animate);
+      controls.update();
+
+      if (globeMesh && !userInteracting) {
+        globeGroup.rotation.y += 0.0012; // speed
+      }
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    });
+  </script>
 </body>
 </html>
