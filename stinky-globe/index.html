@@ -64,6 +64,54 @@
       pointer-events: none;
       letter-spacing: 0.01em;
     }
+
+    .pins-status{
+      position: absolute;
+      left: 16px;
+      bottom: 36px;
+      font-size: 12px;
+      color: var(--ink);
+      opacity: 0.85;
+      pointer-events: none;
+      letter-spacing: 0.01em;
+    }
+
+    .popup{
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 2px solid var(--ink);
+      border-radius: 12px;
+      background: var(--bg);
+      color: var(--ink);
+      font-weight: 700;
+      pointer-events: auto;
+    }
+
+    .popup.is-visible{
+      display: inline-flex;
+    }
+
+    .popup__close{
+      appearance: none;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--ink);
+      width: 22px;
+      height: 22px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .popup__close:hover{
+      background: rgba(0, 0, 0, 0.06);
+    }
   </style>
 </head>
 <body>
@@ -71,6 +119,11 @@
   <div class="ui">
     <a class="back" href="../">Back</a>
     <div class="hint">Drag to rotate · Scroll to zoom</div>
+    <div class="pins-status" id="pins-status">Pins: loading…</div>
+    <div class="popup" id="popup" role="dialog" aria-live="polite">
+      <span id="popup-title">Pin</span>
+      <button class="popup__close" id="popup-close" type="button" aria-label="Close popup">×</button>
+    </div>
   </div>
 
   <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
@@ -84,6 +137,22 @@
       return `hsl(${hue}, 60%, 80%)`;
     };
 
+    const popup = document.getElementById("popup");
+    const popupTitle = document.getElementById("popup-title");
+    const popupClose = document.getElementById("popup-close");
+    const pinsStatus = document.getElementById("pins-status");
+
+    const showPopup = (title) => {
+      popupTitle.textContent = title || "Untitled pin";
+      popup.classList.add("is-visible");
+    };
+
+    const hidePopup = () => {
+      popup.classList.remove("is-visible");
+    };
+
+    popupClose.addEventListener("click", hidePopup);
+
     const globe = Globe()(container)
       .backgroundColor("rgba(0,0,0,0)")
       .globeMaterial(new THREE.MeshPhongMaterial({ color: "#66d9ff" }))
@@ -91,7 +160,22 @@
       .polygonStrokeColor(() => "#0a0a0a")
       .polygonAltitude(0.012)
       .polygonCapColor(() => pastel())
-      .polygonSideColor(() => "rgba(0,0,0,0)");
+      .polygonSideColor(() => "rgba(0,0,0,0)")
+      .pointLat("lat")
+      .pointLng("lng")
+      .pointAltitude(0.04)
+      .pointRadius(0.35)
+      .pointResolution(8)
+      .pointColor(() => "#0a0a0a")
+      .pointLabel("title")
+      .onPointClick((point) => {
+        if (point) {
+          showPopup(point.title);
+        }
+      })
+      .onGlobeClick(() => {
+        hidePopup();
+      });
 
     const scene = globe.scene();
     const ambient = new THREE.AmbientLight(0xffffff, 0.85);
@@ -104,6 +188,29 @@
       .then((world) => {
         const countries = topojson.feature(world, world.objects.countries).features;
         globe.polygonsData(countries);
+      });
+
+    const defaultPins = [
+      { title: "Home Base", lat: 40.7128, lng: -74.006 },
+      { title: "Stinky Beach", lat: 34.0195, lng: -118.4912 }
+    ];
+
+    fetch("./pins.json")
+      .then((res) => res.json())
+      .then((pins) => {
+        if (!Array.isArray(pins)) {
+          throw new Error("pins.json must be an array");
+        }
+        globe.pointsData(pins);
+        pinsStatus.textContent = `Pins: ${pins.length}`;
+        if (pins.length === 0) {
+          pinsStatus.textContent = "Pins: 0 (empty list)";
+        }
+      })
+      .catch((error) => {
+        globe.pointsData(defaultPins);
+        pinsStatus.textContent = `Pins: ${defaultPins.length} (local fallback)`;
+        console.warn("Pins failed to load. If opening via file://, use a local server.", error);
       });
 
     globe.controls().enableZoom = true;
