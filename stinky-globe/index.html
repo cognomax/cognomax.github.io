@@ -64,17 +64,222 @@
       pointer-events: none;
       letter-spacing: 0.01em;
     }
+
+    .news-panel{
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      bottom: 20px;
+      width: min(420px, calc(100vw - 40px));
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      pointer-events: auto;
+      display: none;
+      gap: 12px;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+      backdrop-filter: blur(6px);
+    }
+
+    .news-panel.is-visible{
+      display: flex;
+    }
+
+    .news-header{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 800;
+    }
+
+    .news-title{
+      font-size: 15px;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .news-close{
+      appearance: none;
+      border: none;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.06);
+      color: var(--ink);
+      width: 30px;
+      height: 30px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .news-card{
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 16px;
+      padding: 14px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .news-card__title{
+      font-weight: 800;
+      font-size: 18px;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+
+    .news-card__meta{
+      font-size: 12px;
+      opacity: 0.6;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .news-card__link{
+      font-size: 13px;
+      font-weight: 700;
+      color: #0a0a0a;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .news-card__link::after{
+      content: "→";
+    }
+
+    .news-list{
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: auto;
+      padding-right: 4px;
+      flex: 1 1 auto;
+    }
+
+    .news-nav{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .news-arrow{
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.08);
+      color: var(--ink);
+      width: 36px;
+      height: 36px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .news-load{
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.08);
+      color: var(--ink);
+      padding: 10px 16px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .loading-overlay{
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    .loading-overlay.is-hidden{
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loading-card{
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 6px;
+      padding: 40px 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .loading-title{
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: 0.06em;
+    }
+
+    .loading-spinner{
+      width: 32px;
+      height: 32px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-top-color: var(--ink);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading-hint{
+      font-size: 12px;
+      color: var(--ink);
+      opacity: 0.5;
+      letter-spacing: 0.02em;
+    }
+
+    @keyframes spin{
+      to{ transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-card">
+      <div class="loading-title">stinky globe</div>
+      <div class="loading-spinner"></div>
+      <div class="loading-hint">Loading world data…</div>
+    </div>
+  </div>
   <div id="globe"></div>
   <div class="ui">
     <a class="back" href="../">Back</a>
     <div class="hint">Drag to rotate · Scroll to zoom</div>
+    <div class="news-panel" id="news-panel" aria-live="polite">
+      <div class="news-header">
+        <div class="news-title" id="news-country">Country</div>
+        <button class="news-close" id="news-close" type="button" aria-label="Close news panel">×</button>
+      </div>
+      <div class="news-list" id="news-list">
+        <div class="news-card">
+          <div class="news-card__title">Loading…</div>
+          <div class="news-card__meta"></div>
+          <a class="news-card__link" href="#" target="_blank" rel="noopener noreferrer">Read article</a>
+        </div>
+      </div>
+      <button class="news-load" id="news-load" type="button">Load more</button>
+    </div>
   </div>
 
   <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
   <script src="https://unpkg.com/topojson-client@3"></script>
+  <script src="https://unpkg.com/d3-geo@3"></script>
   <script src="https://unpkg.com/globe.gl@2"></script>
   <script>
     const container = document.getElementById("globe");
@@ -83,15 +288,227 @@
       const hue = Math.floor(Math.random() * 360);
       return `hsl(${hue}, 60%, 80%)`;
     };
+    const countryColors = new WeakMap();
+    const getCountryColor = (feature) => {
+      if (!countryColors.has(feature)) {
+        countryColors.set(feature, pastel());
+      }
+      return countryColors.get(feature);
+    };
+
+    const loadingOverlay = document.getElementById("loading-overlay");
+    const newsPanel = document.getElementById("news-panel");
+    const newsCountry = document.getElementById("news-country");
+    const newsList = document.getElementById("news-list");
+    const newsLoad = document.getElementById("news-load");
+    const newsClose = document.getElementById("news-close");
+
+    const hideLoading = () => {
+      loadingOverlay.classList.add("is-hidden");
+    };
+
+    let currentArticles = [];
+    let visibleCount = 0;
+
+    const showPanel = () => newsPanel.classList.add("is-visible");
+    const hidePanel = () => newsPanel.classList.remove("is-visible");
+
+    // Country name aliases for better search results
+    const countryAliases = {
+      "United States of America": ["USA", "United States", "US", "America"],
+      "United Kingdom": ["UK", "Britain", "Great Britain", "England"],
+      "Russian Federation": ["Russia"],
+      "Korea, Republic of": ["South Korea", "Korea"],
+      "Korea, Dem. People's Rep.": ["North Korea", "DPRK"],
+      "Iran, Islamic Rep.": ["Iran"],
+      "Syrian Arab Republic": ["Syria"],
+      "Venezuela, RB": ["Venezuela"],
+      "Egypt, Arab Rep.": ["Egypt"],
+      "Congo, Dem. Rep.": ["Democratic Republic of Congo", "DRC", "Congo"],
+      "Tanzania": ["Tanzania"],
+      "Côte d'Ivoire": ["Ivory Coast"],
+      "Czech Republic": ["Czechia"],
+      "Myanmar": ["Burma"],
+      "Lao PDR": ["Laos"],
+      "Viet Nam": ["Vietnam"],
+      "Brunei Darussalam": ["Brunei"],
+      "Timor-Leste": ["East Timor"],
+      "Papua New Guinea": ["PNG"],
+      "Bosnia and Herzegovina": ["Bosnia"],
+      "North Macedonia": ["Macedonia"],
+      "United Arab Emirates": ["UAE", "Dubai", "Abu Dhabi"],
+      "Saudi Arabia": ["KSA"],
+      "New Zealand": ["NZ"],
+      "South Africa": ["RSA"],
+      "The Netherlands": ["Netherlands", "Holland"]
+    };
+
+    const getSearchTerms = (countryName) => {
+      const aliases = countryAliases[countryName] || [];
+      return [countryName, ...aliases];
+    };
+
+    const setLoadState = () => {
+      if (visibleCount >= currentArticles.length) {
+        newsLoad.style.display = "none";
+      } else {
+        newsLoad.style.display = "inline-flex";
+      }
+    };
+
+    const renderArticles = () => {
+      newsList.innerHTML = "";
+      if (currentArticles.length === 0) {
+        const emptyCard = document.createElement("div");
+        emptyCard.className = "news-card";
+        emptyCard.innerHTML = `
+          <div class="news-card__title">No recent news found.</div>
+          <div class="news-card__meta"></div>
+          <div class="news-card__link">Try another country</div>
+        `;
+        newsList.appendChild(emptyCard);
+        setLoadState();
+        return;
+      }
+
+      currentArticles.slice(0, visibleCount).forEach((article) => {
+        const card = document.createElement("div");
+        card.className = "news-card";
+        const meta = article.date ? `<div class="news-card__meta">${article.date}</div>` : "<div class=\"news-card__meta\"></div>";
+        card.innerHTML = `
+          <div class="news-card__title">${article.title}</div>
+          ${meta}
+          <a class="news-card__link" href="${article.link}" target="_blank" rel="noopener noreferrer">Read article</a>
+        `;
+        newsList.appendChild(card);
+      });
+
+      setLoadState();
+    };
+
+    const parseRss = (xmlText) => {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlText, "text/xml");
+      return Array.from(xml.querySelectorAll("item")).map((item) => ({
+        title: item.querySelector("title")?.textContent?.trim() || "",
+        link: item.querySelector("link")?.textContent?.trim() || "",
+        date: item.querySelector("pubDate")?.textContent?.trim() || "",
+        description: item.querySelector("description")?.textContent?.trim() || ""
+      }));
+    };
+
+    const allOrigins = (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const corsProxy = (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`;
+
+    const fetchWithFallback = (url) =>
+      fetch(allOrigins(url))
+        .then((res) => {
+          if (!res.ok) throw new Error("allorigins failed");
+          return res.text();
+        })
+        .catch(() => 
+          fetch(corsProxy(url)).then((res) => {
+            if (!res.ok) throw new Error("corsproxy failed");
+            return res.text();
+          })
+        );
+
+    const loadNewsForCountry = (countryName) => {
+      newsCountry.textContent = countryName;
+      newsList.innerHTML = `
+        <div class="news-card">
+          <div class="news-card__title">Loading…</div>
+          <div class="news-card__meta"></div>
+          <div class="news-card__link">Read article</div>
+        </div>
+      `;
+      showPanel();
+
+      // Use the primary search term (first alias or country name itself)
+      const searchTerms = getSearchTerms(countryName);
+      const primaryTerm = searchTerms[0];
+      
+      // Google News RSS search - searches for news about the country directly
+      const googleNewsUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(primaryTerm + " news")}&hl=en-US&gl=US&ceid=US:en`;
+      
+      // Fallback feeds for world news
+      const worldFeeds = [
+        "https://feeds.bbci.co.uk/news/world/rss.xml",
+        "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"
+      ];
+
+      // Try Google News first (targeted search), then fall back to world feeds
+      return fetchWithFallback(googleNewsUrl)
+        .then((xmlText) => {
+          const items = parseRss(xmlText);
+          if (items.length > 0) {
+            return items;
+          }
+          throw new Error("No Google News results");
+        })
+        .catch(() => {
+          // Fallback: fetch world feeds and filter by country name/aliases
+          return Promise.all(worldFeeds.map((url) => fetchWithFallback(url).catch(() => "")))
+            .then((xmlTexts) => xmlTexts.flatMap((xml) => xml ? parseRss(xml) : []))
+            .then((items) => {
+              const needles = searchTerms.map((t) => t.toLowerCase());
+              return items.filter((item) => {
+                const hay = `${item.title} ${item.description}`.toLowerCase();
+                return needles.some((needle) => hay.includes(needle));
+              });
+            });
+        })
+        .then((items) => {
+          // Deduplicate by link
+          const seen = new Set();
+          const deduped = items.filter((item) => {
+            if (!item.link || seen.has(item.link)) return false;
+            seen.add(item.link);
+            return true;
+          });
+
+          currentArticles = deduped.slice(0, 30);
+          visibleCount = Math.min(5, currentArticles.length);
+          renderArticles();
+        })
+        .catch((error) => {
+          console.warn("Failed to load news.", error);
+          currentArticles = [];
+          visibleCount = 0;
+          renderArticles();
+        });
+    };
+
+    // Globe material with polygon offset to prevent z-fighting with country polygons
+    const globeMaterial = new THREE.MeshPhongMaterial({
+      color: "#66d9ff",
+      depthWrite: true,
+      polygonOffset: true,
+      polygonOffsetFactor: 4,
+      polygonOffsetUnits: 4
+    });
 
     const globe = Globe()(container)
       .backgroundColor("rgba(0,0,0,0)")
-      .globeMaterial(new THREE.MeshPhongMaterial({ color: "#66d9ff" }))
+      .globeMaterial(globeMaterial)
       .showAtmosphere(false)
-      .polygonStrokeColor(() => "#0a0a0a")
-      .polygonAltitude(0.012)
-      .polygonCapColor(() => pastel())
-      .polygonSideColor(() => "rgba(0,0,0,0)");
+      .polygonStrokeColor(() => "rgba(0,0,0,0)")
+      .polygonAltitude(0.008)
+      .polygonCapColor((d) => getCountryColor(d))
+      .polygonSideColor((d) => getCountryColor(d))
+      .labelLat("lat")
+      .labelLng("lng")
+      .labelText("name")
+      .labelColor(() => "#0a0a0a")
+      .labelSize(0.6)
+      .labelDotRadius(0)
+      .labelAltitude(0.01)
+      .onPolygonClick((feature) => {
+        const name = feature?.properties?.name;
+        if (name) {
+          loadNewsForCountry(name);
+        }
+      });
 
     const scene = globe.scene();
     const ambient = new THREE.AmbientLight(0xffffff, 0.85);
@@ -99,26 +516,70 @@
     directional.position.set(5, 3, 5);
     scene.add(ambient, directional);
 
-    fetch("https://unpkg.com/world-atlas@2/countries-110m.json")
+    const fetchText = (url) => fetch(url).then((res) => res.text());
+
+    const parseTsv = (text) => {
+      const rows = text.trim().split("\n");
+      const headers = rows.shift().split("\t");
+      return rows.map((row) => {
+        const values = row.split("\t");
+        return headers.reduce((acc, key, idx) => {
+          acc[key] = values[idx];
+          return acc;
+        }, {});
+      });
+    };
+
+    fetch("https://unpkg.com/world-atlas@2/countries-50m.json")
       .then((res) => res.json())
       .then((world) => {
         const countries = topojson.feature(world, world.objects.countries).features;
         globe.polygonsData(countries);
+
+        return fetchText("https://unpkg.com/world-atlas@2/countries-50m.tsv")
+          .then((namesText) => {
+            const nameById = new Map(
+              parseTsv(namesText).map((row) => [row.id, row.name])
+            );
+
+            countries.forEach((feature) => {
+              feature.properties = feature.properties || {};
+              feature.properties.name = nameById.get(String(feature.id)) || "";
+            });
+
+            const labels = countries
+              .map((feature) => {
+                const [lng, lat] = d3.geoCentroid(feature);
+                const name = feature.properties.name;
+                return name ? { lat, lng, name } : null;
+              })
+              .filter(Boolean);
+
+            globe.labelsData(labels);
+            
+            // Hide loading screen once everything is loaded
+            setTimeout(hideLoading, 300);
+          })
+          .catch((error) => {
+            console.warn("Country labels failed to load.", error);
+            hideLoading();
+          });
+      })
+      .catch((error) => {
+        console.error("Countries failed to load.", error);
+        hideLoading();
       });
 
     globe.controls().enableZoom = true;
     globe.controls().autoRotate = true;
     globe.controls().autoRotateSpeed = -0.25; // right-to-left
 
-    const addOutline = () => {
-      const radius = globe.getGlobeRadius();
-      const geometry = new THREE.SphereGeometry(radius * 1.001, 64, 64);
-      const edges = new THREE.EdgesGeometry(geometry);
-      const material = new THREE.LineBasicMaterial({ color: "#0a0a0a" });
-      const outline = new THREE.LineSegments(edges, material);
-      scene.add(outline);
-    };
-    addOutline();
+    newsLoad.addEventListener("click", () => {
+      visibleCount = Math.min(visibleCount + 5, currentArticles.length);
+      renderArticles();
+    });
+
+    newsClose.addEventListener("click", hidePanel);
 
     const resize = () => {
       globe.width([container.offsetWidth]);
