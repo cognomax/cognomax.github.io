@@ -113,11 +113,9 @@
     const addOutline = () => {
       const radius = globe.getGlobeRadius();
       const geometry = new THREE.SphereGeometry(radius * 1.001, 64, 64);
-      const material = new THREE.MeshBasicMaterial({
-        color: "#0a0a0a",
-        wireframe: true
-      });
-      const outline = new THREE.Mesh(geometry, material);
+      const edges = new THREE.EdgesGeometry(geometry);
+      const material = new THREE.LineBasicMaterial({ color: "#0a0a0a" });
+      const outline = new THREE.LineSegments(edges, material);
       scene.add(outline);
     };
     addOutline();
